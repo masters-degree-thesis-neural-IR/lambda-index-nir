@@ -1,7 +1,7 @@
 package domain
 
 type Document struct {
-	Id    string
-	Title string
-	Body  string
+	Id     string
+	Length int
+	Tf     map[string]int
 }
