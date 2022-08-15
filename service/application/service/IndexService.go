@@ -88,7 +88,10 @@ func RemoveAccents(s string) string {
 
 func Tokenizer(document string, normalize bool) []string {
 
-	fields := strings.Fields(strings.ReplaceAll(document, ",", ""))
+	var temp = strings.ReplaceAll(document, ",", "")
+	temp = strings.ReplaceAll(temp, ".", "")
+
+	fields := strings.Fields(temp)
 
 	if normalize {
 
