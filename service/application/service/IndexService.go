@@ -1,12 +1,16 @@
 package service
 
 import (
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 	"lambda-index-nir/service/application/domain"
 	"lambda-index-nir/service/application/exception"
 	"lambda-index-nir/service/application/repositories"
 	"lambda-index-nir/service/application/stopwords"
 	"lambda-index-nir/service/application/usecases"
 	"strings"
+	"unicode"
 )
 
 type IndexService struct {
@@ -23,7 +27,7 @@ func NewIndexService(indexRepository repositories.IndexRepository) usecases.Crea
 func (i IndexService) CreateIndex(id string, title string, body string) error {
 
 	tokens := Tokenizer(body, true)
-	normalizedTokens, err := RemoveStopWords(tokens, "en")
+	normalizedTokens, err := RemoveStopWords(tokens, "pt")
 
 	if err != nil {
 		return err
@@ -73,14 +77,24 @@ func NotContains(document domain.Document, documents []domain.Document) bool {
 	return true
 }
 
+func RemoveAccents(s string) string {
+	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	output, _, e := transform.String(t, s)
+	if e != nil {
+		panic(e)
+	}
+	return output
+}
+
 func Tokenizer(document string, normalize bool) []string {
-	fields := strings.Fields(document)
+
+	fields := strings.Fields(strings.ReplaceAll(document, ",", ""))
 
 	if normalize {
 
 		localSlice := make([]string, len(fields))
 		for i, token := range fields {
-			localSlice[i] = strings.ToLower(token)
+			localSlice[i] = strings.ToLower(RemoveAccents(token))
 		}
 
 		return localSlice
@@ -94,6 +108,10 @@ func StopWordLang(lang string) (map[string]bool, error) {
 
 	if lang == "en" {
 		return stopwords.English, nil
+	}
+
+	if lang == "pt" {
+		return stopwords.Portuguese, nil
 	}
 
 	return nil, *exception.ThrowValidationError("Not found language from stop word")

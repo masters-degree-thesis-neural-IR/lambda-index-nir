@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"lambda-index-nir/service/application/service"
 	"lambda-index-nir/service/infraestructure/dto"
+	"lambda-index-nir/service/infraestructure/dydb"
+	"log"
 )
 
 var TopicArn string
@@ -27,54 +31,40 @@ func makeBody(body string) (dto.Document, error) {
 
 func handler(ctx context.Context, event events.SQSEvent) error {
 
+	sess := session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+	}))
+
+	repository := dydb.NewIndexRepository(sess, "NIR_Index")
+	service := service.NewIndexService(repository)
+
 	for _, message := range event.Records {
+
+		doc := dto.Document{}
+		err := json.Unmarshal([]byte(message.Body), &doc)
+
+		if err != nil {
+			log.Fatalln("error...: ", err)
+			return err
+		}
+
+		err = service.CreateIndex(doc.Id, doc.Title, doc.Body)
+
+		if err != nil {
+			log.Fatalln("error...: ", err)
+			return err
+		}
+
+		println("****** Sucesso *******")
 		fmt.Printf("The message %s for event source %s = %s \n", message.MessageId, message.EventSource, message.Body)
 	}
 
 	return nil
-
-	//if req.HTTPMethod != "POST" {
-	//	return events.APIGatewayProxyResponse{
-	//		StatusCode: http.StatusBadRequest,
-	//		Headers:    map[string]string{"Content-Type": "text/plain; charset=utf-8"},
-	//		Body:       "Invalid HTTP Method",
-	//	}, nil
-	//}
-	//
-	//document, err := makeBody(req.Body)
-	//
-	//if err != nil {
-	//	return ErrorHandler(err), nil
-	//}
-	//
-	//awsSession, err := session.NewSession(&aws.Config{
-	//	Region: aws.String(AwsRegion)},
-	//)
-	//
-	//if err != nil {
-	//	return ErrorHandler(err), nil
-	//}
-	//
-	//repository := dydb.NewDocumentRepository(awsSession, TableName)
-	//documentEvent := sns.NewDocumentEvent(awsSession, TopicArn)
-	//documentService := service.NewDocumentService(documentEvent, repository)
-	//err = documentService.CreateDocument(document.Title, document.Body)
-	//
-	//if err != nil {
-	//	return ErrorHandler(err), nil
-	//}
-	//
-	//return events.APIGatewayProxyResponse{
-	//	StatusCode: http.StatusCreated,
-	//	Headers:    map[string]string{"Content-Type": "text/plain; charset=utf-8"},
-	//	Body:       "Document created",
-	//}, nil
-
 }
 
 func main() {
-	AwsRegion = "us-east-1"
-	TopicArn = "arn:aws:sns:us-east-1:149501088887:mestrado-document-created" //os.Getenv("BAR")
-	TableName = "NIR_Document"
+	//AwsRegion = "us-east-1"
+	//TopicArn = "arn:aws:sns:us-east-1:149501088887:mestrado-document-created" //os.Getenv("BAR")
+	TableName = "NIR_Index"
 	lambda.Start(handler)
 }
