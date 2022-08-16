@@ -33,7 +33,7 @@ func (i IndexService) CreateIndex(id string, title string, body string) error {
 		return err
 	}
 
-	document := domain.Document{
+	document := domain.NormalizedDocument{
 		Id:     id,
 		Length: len(normalizedTokens),
 		Tf:     TermFrequency(normalizedTokens),
@@ -57,7 +57,7 @@ func (i IndexService) CreateIndex(id string, title string, body string) error {
 		} else {
 			index := domain.Index{
 				Term:      term,
-				Documents: []domain.Document{document},
+				Documents: []domain.NormalizedDocument{document},
 			}
 			i.IndexRepository.Save(index)
 		}
@@ -66,7 +66,7 @@ func (i IndexService) CreateIndex(id string, title string, body string) error {
 	return nil
 }
 
-func NotContains(document domain.Document, documents []domain.Document) bool {
+func NotContains(document domain.NormalizedDocument, documents []domain.NormalizedDocument) bool {
 
 	for _, doc := range documents {
 		if doc.Id == document.Id {

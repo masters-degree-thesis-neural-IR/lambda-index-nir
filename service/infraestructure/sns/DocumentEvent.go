@@ -23,7 +23,7 @@ func NewDocumentEvent(awsSession *session.Session, topicArn string) ports.Docume
 	return c
 }
 
-func (d DocumentEvent) Created(document domain.Document) error {
+func (d DocumentEvent) Created(document domain.NormalizedDocument) error {
 
 	doc, err := json.Marshal(document)
 
