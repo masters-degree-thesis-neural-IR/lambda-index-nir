@@ -11,7 +11,7 @@ resource "aws_lambda_function" "lambda" {
   role          = aws_iam_role.lambda-role.arn
   handler       = "app"
 
-  description = "Exemplo de uma lambda com terraform e GO"
+  description = "Lambda com a função de criar um indice"
 
   source_code_hash = archive_file.lambda.output_base64sha256
 
@@ -27,6 +27,13 @@ resource "aws_lambda_function" "lambda" {
 #      CONVERSATION_TABLE = local.conversation-table
 #    }
 #  }
+
+
+  vpc_config {
+    # Every subnet should be able to reach an EFS mount target in the same Availability Zone. Cross-AZ mounts are not permitted.
+    subnet_ids         = ["subnet-68ab3159","subnet-2e0b5d48","subnet-1c606812","subnet-893a69d6","subnet-6bea0c27","subnet-a6b9e487"]
+    security_group_ids = ["sg-00329077bffb598ff"]
+  }
 
   tags = local.common_tags
 }

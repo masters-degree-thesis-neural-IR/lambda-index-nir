@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"lambda-index-nir/service/application/service"
 	"lambda-index-nir/service/infraestructure/dto"
-	"lambda-index-nir/service/infraestructure/dydb"
-	"log"
+	zapplog "lambda-index-nir/service/infraestructure/log"
+	"lambda-index-nir/service/infraestructure/memory"
 )
 
 var TableName string
@@ -18,21 +16,11 @@ var AwsRegion string
 
 func handler(ctx context.Context, event events.SQSEvent) error {
 
-	//sess := session.Must(session.NewSessionWithOptions(session.Options{
-	//	SharedConfigState: session.SharedConfigEnable,
-	//}))
+	logger := zapplog.NewZapLogger()
+	repository := memory.NewSpeedupRepository()
+	service := service.NewIndexService(logger, repository)
 
-	awsSession, err := session.NewSession(&aws.Config{
-		Region: aws.String(AwsRegion)},
-	)
-
-	if err != nil {
-		log.Fatalln("error...: ", err)
-		return err
-	}
-
-	repository := dydb.NewIndexRepository(awsSession, TableName)
-	service := service.NewIndexService(repository)
+	logger.Info("Lambda Accepted Request")
 
 	for _, message := range event.Records {
 
@@ -42,15 +30,18 @@ func handler(ctx context.Context, event events.SQSEvent) error {
 		doc := &dto.Document{}
 		err := json.Unmarshal([]byte(mp["Message"]), doc)
 
+		logger.Info("Documento recebido")
+		logger.Info(doc)
+
 		if err != nil {
-			log.Fatalln("error...: ", err)
+			logger.Fatal(err.Error())
 			return err
 		}
 
 		err = service.CreateIndex(doc.Id, doc.Title, doc.Body)
 
 		if err != nil {
-			log.Fatalln("error...: ", err)
+			logger.Fatal(err.Error())
 			return err
 		}
 
